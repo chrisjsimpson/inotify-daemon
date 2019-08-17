@@ -1,5 +1,5 @@
 install:
 	gcc -g ./notify.c
 run:
-	./a.out
+	./a.out "echo watching /tmp" /tmp
 	

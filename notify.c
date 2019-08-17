@@ -71,7 +71,9 @@
                    if (event->mask & IN_CLOSE_WRITE) {
                        printf("IN_CLOSE_WRITE: ");
                        printf("Running command %s\n", argv[1]);
-                       system(argv[1]);
+                       // WARNING: 
+                       system(argv[1]); //Unsafe, unsanitized, unchecked
+                       // WARNING.
                    }
 
                    /* Print the name of the watched directory */
