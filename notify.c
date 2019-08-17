@@ -7,9 +7,19 @@
 
        /* Read all available inotify events from the file descriptor 'fd'.
           wd is the table of watch descriptors for the directories in argv.
-          argc is the length of wd and argv.
-          argv is the list of watched directories.
-          Entry 0 of wd and argv is unused. */
+          Run COMMAND passed as first agrument when IN_CLOSE_WRITE event
+          occurs.
+          - argc is the length of wd and argv.
+          - argv is the list of watched directories.
+          Entry 0 of wd and argv is unused. 
+      
+          Example invocations:
+          # Watch for changes to configs, reload apache gracefully upon writes
+          ./a.out "sudo systemctl reload apache2" /etc/apache2/conf-available
+          # Watch multiple paths and reload upon changes
+          ./a.out "sudo systemctl reload apache2" /home/fred/custom.conf \
+                                                /etc/apache2/conf-available
+        */
 
        static void
        handle_events(int fd, int *wd, int argc, char* argv[])
@@ -58,9 +68,11 @@
                        printf("IN_OPEN: ");
                    if (event->mask & IN_CLOSE_NOWRITE)
                        printf("IN_CLOSE_NOWRITE: ");
-                   if (event->mask & IN_CLOSE_WRITE)
+                   if (event->mask & IN_CLOSE_WRITE) {
                        printf("IN_CLOSE_WRITE: ");
-                   system("touch ok.txt");
+                       printf("Running command %s\n", argv[1]);
+                       system(argv[1]);
+                   }
 
                    /* Print the name of the watched directory */
 
@@ -95,11 +107,11 @@
            nfds_t nfds;
            struct pollfd fds[2];
 
-           if (argc < 2) {
-               printf("Usage: %s PATH [PATH ...]\n", argv[0]);
+           if (argc < 3) {
+               printf("Usage: %s \"COMMAND\" PATH [PATH ...]\n", argv[0]);
                exit(EXIT_FAILURE);
            }
-
+          
            printf("Press ENTER key to terminate.\n");
 
            /* Create the file descriptor for accessing the inotify API */
@@ -122,7 +134,7 @@
               - file was opened
               - file was closed */
 
-           for (i = 1; i < argc; i++) {
+           for (i = 2; i < argc; i++) {
                wd[i] = inotify_add_watch(fd, argv[i],
                                          IN_OPEN | IN_CLOSE);
                if (wd[i] == -1) {
