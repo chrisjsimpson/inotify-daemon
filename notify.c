@@ -1,9 +1,9 @@
-      #include <errno.h>
-       #include <poll.h>
-       #include <stdio.h>
-       #include <stdlib.h>
-       #include <sys/inotify.h>
-       #include <unistd.h>
+#include <errno.h>
+#include <poll.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/inotify.h>
+#include <unistd.h>
 
        /* Read all available inotify events from the file descriptor 'fd'.
           wd is the table of watch descriptors for the directories in argv.
