@@ -1,9 +1,93 @@
+#include "apue.h"
+#include "error.c"
 #include <errno.h>
 #include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/inotify.h>
 #include <unistd.h>
+#include <syslog.h>
+#include <fcntl.h>
+#include <sys/resource.h>
+
+// Daemonize
+void daemonize(const char *cmd)
+{
+  int i, fd0, fd1, fd2;
+  pid_t pid;
+  struct rlimit rl;
+  struct sigaction sig_action;
+  
+  syslog(LOG_ERR, "daemonizeing");
+  
+  /*
+  * Clear file creation mask.
+  */
+  umask(0);
+
+  /*
+  * Get maximum number of file descriptors.
+  */
+  if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
+    err_quit("%s: Can't get file limit", cmd);
+
+  /*
+  * Become a session leader to loose controlling TTY.
+  */
+  if ((pid == fork()) < 0)
+      err_quit("%s: can't fork", cmd);
+  else if (pid != 0) /* parent */
+      exit(0);
+  setsid();
+  syslog(LOG_ERR, "all good");
+
+  /*
+  * Ensure future opens won't allocate controlling TTYs.
+  */
+    sig_action.sa_handler = SIG_IGN;
+    sigemptyset(&sig_action.sa_mask);
+    sig_action.sa_flags = 0;
+    if (sigaction(SIGHUP, &sig_action, NULL) < 0)
+      err_quit("%s: can't ignore SIGHUP", cmd);
+    if ((pid = fork()) < 0)
+      err_quit("%s: can't fork", cmd);
+    else if (pid !=0) /* parent */
+      exit(0);
+
+  /*
+  * Change the current working directory to the root so
+  * we won't prevent file systems from being unmounted.
+  */
+  if (chdir("/") < 0)
+    err_quit("%s: can't change directory to /", cmd);
+
+  /* 
+  * Close all open file descriptors.
+  */
+  if (rl.rlim_max == RLIM_INFINITY)
+    rl.rlim_max = 1024;
+  for (i = 0; i < rl.rlim_max; i++)
+      close(i);
+
+  /*
+  * Attach file descriptors 0,1, and 2 to /dev/null.
+  */
+  fd0 = open("/dev/null", O_RDWR);
+  fd1 = dup(0);
+  fd2 = dup(0);
+
+  /*
+  * Initialize the log file.
+  */
+  openlog(cmd, LOG_CONS, LOG_DAEMON);
+  if (fd0 !=0 || fd1 != 1 || fd2 != 2) {
+    syslog(LOG_ERR, "unexpected file descriptors %d %d %d",
+      fd0, fd1, fd2);
+    exit(1);
+  } 
+  
+}
+// End Daemonize
 
        /* Read all available inotify events from the file descriptor 'fd'.
           wd is the table of watch descriptors for the directories in argv.
@@ -103,6 +187,7 @@
        int
        main(int argc, char* argv[])
        {
+           daemonize("main 'ls -l ' /tmp");
            char buf;
            int fd, i, poll_num;
            int *wd;
@@ -186,7 +271,6 @@
                    if (fds[1].revents & POLLIN) {
 
                        /* Inotify events are available */
-
                        handle_events(fd, wd, argc, argv);
                    }
                }
