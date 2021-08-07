@@ -92,7 +92,7 @@ handle_events(int fd, int *wd, int argc, char* argv[])
 int
 main(int argc, char* argv[])
 {
-   daemon(0,0);
+   daemon(1,0);
    char buf;
    int fd, i, poll_num;
    int *wd;
@@ -158,7 +158,6 @@ main(int argc, char* argv[])
            if (fds[1].revents & POLLIN) {
 
                /* Inotify events are available. */
-               system("touch /home/chris/Documents/test/amazing");
                handle_events(fd, wd, argc, argv);
            }
        }
