@@ -92,6 +92,7 @@ handle_events(int fd, int *wd, int argc, char* argv[])
 int
 main(int argc, char* argv[])
 {
+   daemon(0,0);
    char buf;
    int fd, i, poll_num;
    int *wd;
@@ -104,7 +105,6 @@ main(int argc, char* argv[])
        exit(EXIT_FAILURE);
    }
 
-   printf("Press ENTER key to terminate.\n");
 
    /* Create the file descriptor for accessing the inotify API. */
 
@@ -138,9 +138,6 @@ main(int argc, char* argv[])
 
    nfds = 2;
 
-   fds[0].fd = STDIN_FILENO;       /* Console input */
-   fds[0].events = POLLIN;
-
    fds[1].fd = fd;                 /* Inotify input */
    fds[1].events = POLLIN;
 
@@ -158,19 +155,10 @@ main(int argc, char* argv[])
 
        if (poll_num > 0) {
 
-           if (fds[0].revents & POLLIN) {
-
-               /* Console input is available. Empty stdin and quit. */
-
-               while (read(STDIN_FILENO, &buf, 1) > 0 && buf != '\n')
-                   continue;
-               break;
-           }
-
            if (fds[1].revents & POLLIN) {
 
                /* Inotify events are available. */
-
+               system("touch /home/chris/Documents/test/amazing");
                handle_events(fd, wd, argc, argv);
            }
        }
